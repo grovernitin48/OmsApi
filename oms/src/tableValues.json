@@ -1,0 +1,111 @@
+[
+    {
+        "code" : "EcoSuperValue",
+        "name" : "Economy Super Value",
+        "change" : "Not permitted",
+        "refund" : "Not permitted"
+    },
+    {
+        "code" : "EcoValue",
+        "name" : "Economy Value",
+        "change" : "Not permitted",
+        "refund" : "Permitted (with fee)"
+    },
+    {
+        "code" : "EcoBasic",
+        "name" : "Economy Basic",
+        "change" : "Permitted (with fee)",
+        "refund" : "Permitted (with fee)"
+    },
+    {
+        "code" : "EcoFlex",
+        "name" : "Economy Flex",
+        "change" : "Permitted",
+        "refund" : "Permitted (with fee)"
+    },
+{
+        "code" : "EcoFullFlex",
+        "name" : "Economy Full Flex",
+        "change" : "Permitted",
+        "refund" : "Permitted"
+    },
+    {
+        "code" : "PESuperValue",
+        "name" : "Premium Eco Super Value",
+        "change" : "Not permitted",
+        "refund" : "Not permitted"
+    },
+    {
+        "code" : "PEValuePlus",
+        "name" : "Premium Eco Value Plus",
+        "change" : "Not permitted",
+        "refund" : "Permitted (with fee)"
+    },
+    {
+        "code" : "PEValue",
+        "name" : "Premium Eco Value",
+        "change" : "Not permitted",
+        "refund" : "Permitted (with fee)"
+    },
+
+    {
+        "code" : "PEBasicPlus",
+        "name" : "Premium Eco Basic Plus",
+        "change" : "Permitted (with fee)",
+        "refund" : "Permitted (with fee)"
+    },
+    {
+        "code" : "PEFullFlexPlus",
+        "name" : "Premium Eco Full Flex Plus",
+        "change" : "Permitted",
+        "refund" : "Permitted"
+    },
+    {
+        "code" : "BSSuperValue",
+        "name" : "Business Super Value",
+        "change" : "Not permitted",
+        "refund" : "Not permitted"
+    },
+    {
+        "code" : "BSValuePlus",
+        "name" : "Business Value Plus",
+        "change" : "Not permitted",
+        "refund" : "Permitted (with fee)"
+    },
+    {
+        "code" : "BSBasicPlus",
+        "name" : "Business Basic Plus",
+        "change" : "Permitted (with fee)",
+        "refund" : "Permitted (with fee)"
+    },
+    {
+        "code" : "BSFlexPlus",
+        "name" : "Business Flex Plus",
+        "change" : "Permitted",
+        "refund" : "Permitted (with fee)"
+    },
+    {
+        "code" : "BSFullFlexPlus",
+        "name" : "Business Full Flex Plus",
+        "change" : "Permitted",
+        "refund" : "Permitted"
+    },
+    {
+        "code" : "FSValue",
+        "name" : "First Value",
+        "change" : "Not permitted",
+        "refund" : "Permitted (with fee)"
+    },
+    {
+        "code" : "FSBasic",
+        "name" : "First Basic",
+        "change" : "Permitted (with fee)",
+        "refund" : "Permitted (with fee)"
+    },
+    {
+        "code" : "FSFullFlex",
+        "name" : "First Full Flex",
+        "change" : "Permitted",
+        "refund" : "Permitted"
+    }
+]

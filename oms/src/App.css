@@ -4,10 +4,66 @@
   width: auto;
   min-height: 100vh;
 }
-
+body {  
+  width:100vw;
+  height:100vh;
+  margin: 0px;
+}
+::placeholder {
+  color: rgb(255, 119, 0);
+  font-weight: bold;
+}
+textarea:focus, input:focus, select:focus{
+  outline: none;
+}
+.tripText {
+  font-weight: bold;
+  padding: 4px;
+  margin-left: 0.5%;
+  margin-right: 0.5%;
+  font-size: 1.2rem;
+}
+.marginBottom {
+  margin-bottom: 1rem;
+  margin-top: 1rem;
+}
+.fares {
+  width: 42%;
+}
+.fareTable {
+  border-collapse:collapse;
+}
+th:first-of-type {
+  border-top-left-radius: 8px;
+}
+th:last-of-type {
+  border-top-right-radius: 8px;
+}
+tr:last-of-type td:first-of-type {
+  border-bottom-left-radius: 8px;
+}
+tr:last-of-type td:last-of-type {
+  border-bottom-right-radius: 8px;
+}
+.fares td {
+  border: 1px solid #d1881b;
+  padding: 4px;
+}
+.fares th {
+  border: 1px solid #282c34;
+  padding: 6px;
+}
+.fares th {
+  padding-top: 6px;
+  padding-bottom: 6px;
+  text-align: left;
+  background-color: rgb(255, 119, 0);
+  color: white;
+}
 button {
-  /* margin: auto; */
-  /* padding: .25rem .75rem; */
+  margin: .45rem;
+  /* margin-top: .75rem; */
+  padding: .25rem .75rem;
   font-size: 1.2rem;
   cursor: pointer;
   background: rgb(255, 119, 0);
@@ -19,13 +75,22 @@ button {
   -ms-border-radius: 5px;
   -o-border-radius: 5px;
 }
-input {
+input, select {
+  font-size: 0.9rem;
   margin: .45rem;
+  padding: 6px 2px; 
+  line-height: 10px;
+  border: 1px solid rgb(255, 119, 0);
+  border-radius: 5px;
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  -ms-border-radius: 5px;
+  -o-border-radius: 5px;
 }
 h1 {
   margin: 1.2rem auto;
   font-family: sans-serif;
-  font-size: 3.5rem;
+  font-size: 2.6rem;
 }
 
 blockquote {
@@ -56,7 +121,7 @@ small {
 .App-body {
   display: flex;
   flex-direction: row;
-  align-items:center;
+  align-items :flex-start;
   justify-content:center;
   color: white;
 }
