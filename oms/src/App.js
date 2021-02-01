@@ -11,13 +11,26 @@ import countryJson from '../src/countryValues.json';
 import currencyJson from '../src/currencyValues.json';
 import { DragSwitch } from 'react-dragswitch';
 import 'react-dragswitch/dist/index.css';
+import { css } from '@emotion/react';
+import { RingLoader } from 'react-spinners';
 
 function App() {
-  let [responseData, setResponseData] = useState('');
+    const override = css`
+    display: block;
+    margin: 0 auto;
+    border-color: red;
+  `;
+  let [responseData, setResponseData] = useState([]);
+  let [resultTable, setResultTable] = useState(false);
+  let [loading, setLoading] = useState(false);
+  let [netError, setNetError] = useState(false);
   const [fromDate, setFromDate] = useState(null);
   const [toDate, setToDate] = useState(null);
-  const [checked, setChecked] = useState(true)
-  const { register, handleSubmit, getValues, control, setValue } = useForm({
+  const [checked, setChecked] = useState(true);
+  const tableData = [...tableJson];
+  const countryData = [...countryJson];
+  const currencyData = [...currencyJson];
+  const { register, handleSubmit, getValues, errors, control, setValue } = useForm({
     defaultValues: {
       fareFamily: "EcoSuperValue",
       sellerId: "TRAVELFUSIONIBETA",
@@ -26,9 +39,6 @@ function App() {
       cabin: "3"
     }
   });
-  const tableData = [...tableJson];
-  const countryData = [...countryJson];
-  const currencyData = [...currencyJson];
   const fetchData = useCallback(() => {
     let parser = new xml2js.Parser({explicitArray:false, mergeAttrs:true});
     let xmls=`<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
@@ -110,32 +120,43 @@ function App() {
             var offerList = response["ndc:OffersGroup"]["ndc:CarrierOffers"]["ndc:Offer"]
             var priceClassList = dataList["ndc:PriceClassList"]["ndc:PriceClass"];
             var journeyId;
-            var priceClassId = priceClassList.find(classList => classList["ndc:Code"] === `${getValues('fareFamily')}`)['ndc:PriceClassID']
-            offerList.find(temp => temp["ndc:JourneyOverview"]["ndc:JourneyPriceClass"].find(arr => {
-              if(arr["ndc:PriceClassRefID"] === priceClassId) {
-                journeyId = arr["ndc:PaxJourneyRefID"];
-              };
-              return arr["ndc:PriceClassRefID"] === priceClassId
-            }))
-            var segmentId = dataList["ndc:PaxJourneyList"]["ndc:PaxJourney"].find(arr => arr["ndc:PaxJourneyID"] === journeyId)["ndc:PaxSegmentRefID"][0];
-            var paxSegment = dataList["ndc:PaxSegmentList"]["ndc:PaxSegment"].find(arr => arr["ndc:PaxSegmentID"] === segmentId)
-            var departureTime = paxSegment["ndc:Dep"]["ndc:AircraftScheduledDateTime"]
-            var flightNumber = paxSegment["ndc:MarketingCarrierInfo"]["ndc:MarketingCarrierFlightNumberText"]
-            var endResult = {Departure_Time : departureTime, Flight_Number : flightNumber}
-            setResponseData(endResult);
+            var priceClass = priceClassList.find(classList => classList["ndc:Code"] === `${getValues('fareFamily')}`);
+            if(priceClass) {
+              var priceClassId = priceClass['ndc:PriceClassID'];
+              offerList.find(temp => temp["ndc:JourneyOverview"]["ndc:JourneyPriceClass"].find(arr => {
+                if(arr["ndc:PriceClassRefID"] === priceClassId) {
+                  journeyId = arr["ndc:PaxJourneyRefID"];
+                };
+                return arr["ndc:PriceClassRefID"] === priceClassId
+              }))
+              var segmentId = dataList["ndc:PaxJourneyList"]["ndc:PaxJourney"].find(arr => arr["ndc:PaxJourneyID"] === journeyId)["ndc:PaxSegmentRefID"][0];
+              var paxSegment = dataList["ndc:PaxSegmentList"]["ndc:PaxSegment"].find(arr => arr["ndc:PaxSegmentID"] === segmentId)
+              var departureTime = paxSegment["ndc:Dep"]["ndc:AircraftScheduledDateTime"]
+              var flightNumber = paxSegment["ndc:MarketingCarrierInfo"]["ndc:CarrierDesigCode"]+paxSegment["ndc:MarketingCarrierInfo"]["ndc:MarketingCarrierFlightNumberText"];
+                var endResult = {departureTime : departureTime, flightNumber : flightNumber}
+                setResponseData(responseData => [...responseData, endResult]);
+                setResultTable(true);
+            }
+            else {
+              setNetError(true);
+            }
         })
       
-    }).catch(err=>{console.log(err)})
-  }, [getValues,checked])
+      })
+      .catch(err=>{
+        console.log(err)
+      })
+      .finally(function(){
+        setLoading(false);
+  })
+}, [getValues,checked])
 
- 
 
   useEffect(() => {
-    //fetchData()
   }, [fetchData])
 
   const onSubmitData = (data) => {
-    //setDebug(data);
+    setNetError(false);
     console.log(data);
   };
 
@@ -154,6 +175,7 @@ function App() {
     });
    setToDate(dateChange);
   };
+
   return (
     <div className="App">
       <header className="App-header">
@@ -192,71 +214,83 @@ function App() {
                   <DragSwitch onColor='#ff7700' checked={checked} onChange={(e) => {setChecked(e)}} />
                 </label>
             </div>
-            <div>
-            <Controller
-              name="fromDate"
-              control={control}
-              defaultValue={fromDate}
-              render={() => (
-                <DatePicker
-                  selected={fromDate}
-                  placeholderText="*Depart Date"
-                  onChange={handleChangeFrom}
-                  popperProps={{
-                    positionFixed: true
-                  }}
+            <div className="dates">
+              <Controller
+                  name="fromDate"
+                  control={control}
+                  defaultValue={fromDate}
+                  render={() => (
+                    <DatePicker
+                      selected={fromDate}
+                      placeholderText="*Depart Date"
+                      minDate={moment().toDate()}
+                      onChange={handleChangeFrom}
+                      required={true}
+                      popperProps={{
+                        positionFixed: true
+                      }}
+                    />
+                  )}
                 />
-              )}
-            />
-            <Controller
-                name="toDate"
-                control={control}
-                defaultValue={toDate}
-                render={() => (
-                  <DatePicker
-                    selected={toDate}
-                    placeholderText="*Return Date"
-                    disabled = {!checked}
-                    onChange={handleChangeTo}
-                    popperProps={{
-                      positionFixed: true
-                    }}
-                  />
-                )}
-              />
-            <input
-              type="text"
-              name="origin"
-              placeholder="*Leaving From"
-              ref={register}
-            />
-            <input
-              type="text"
-              name="destination"
-              placeholder="*Going To"
-              ref={register}
-            />
             </div>
-            <div>
-            <select placeholder="Cabin" name="cabin" ref={register}>
-                <option value="3">Economy</option>
-                <option value="4">Premium Economy</option>
-                <option value="2">Business</option>
-                <option value="1">First</option>
-            </select>
-            <select placeholder="Fare Family" name="fareFamily" ref={register}>
-            {tableData.map((data, key) => {
-              return (
-                <option key={key} value={data.code}>{data.name}</option>
-                )
-              })}
-          </select>
-            <select placeholder="Seller ID" name="sellerId" ref={register}>
-                <option value="TRAVELFUSIONIBETA">TRAVELFUSIONIBETA</option>
-                <option value="TYOTA">TYOTA</option>
-                <option value="GOOGLE">GOOGLE</option>
-            </select>
-            </div>
+            <div className="dates">
+              <Controller
+                  name="toDate"
+                  control={control}
+                  defaultValue={toDate}
+                  render={() => (
+                    <DatePicker
+                      selected={toDate}
+                      placeholderText="*Return Date"
+                      minDate={fromDate}
+                      disabled = {!checked}
+                      required={true}
+                      onChange={handleChangeTo}
+                      popperProps={{
+                        positionFixed: true
+                      }}
+                    />
+                  )}
+                />
+                </div>
+                <input
+                  type="text"
+                  name="origin"
+                  placeholder="*Leaving From"
+                  ref={register({ required: true })}
+                />
+                <input
+                  type="text"
+                  name="destination"
+                  placeholder="*Going To"
+                  ref={register({ required: true })}
+                />
+              <div>
+                  <select placeholder="Cabin" name="cabin" ref={register}>
+                      <option value="3">Economy</option>
+                      <option value="4">Premium Economy</option>
+                      <option value="2">Business</option>
+                      <option value="1">First</option>
+                  </select>
+                  <select placeholder="Fare Family" name="fareFamily" ref={register}>
+                  {tableData.map((data, key) => {
+                    return (
+                      <option key={key} value={data.code}>{data.name}</option>
+                      )
+                    })}
+                </select>
+                    <select placeholder="Seller ID" name="sellerId" ref={register}>
+                    <option value="TRAVELFUSIONIBETA">TRAVELFUSIONIBETA</option>
+                    <option value="TYOTA">TYOTA</option>
+                    <option value="SELTA">SELTA</option>
+                    <option value="PNHTA">PNHTA</option>
+                    <option value="MEXTA">MEXTA</option>
+                    <option value="LAXTA">LAXTA</option>
+                    <option value="JKTTA">JKTTA</option>
+                    <option value="FRATA">FRATA</option>
+                    <option value="BOMTA">BOMTA</option>
+                </select>
+              </div>
             <div>
             <select placeholder="Currency" name="currency" ref={register}>
               {currencyData.map((data, key) => {
@@ -272,18 +306,49 @@ function App() {
                   )
                 })}
             </select>
-            <button type='submit' onClick={fetchData}>Get Flights</button>
+              <div className="sweet-loading">
+                  <button type='submit' onClick={() => {fetchData(); setLoading(true)}}>Get Flights</button>
+                 <RingLoader color="#ff7700" loading={loading && !errors.origin && !errors.destination} css={override} size={70} />
+                 {loading && !errors.origin && !errors.destination ? <span className="loadingText">Getting the best results...</span> : ''}
+              </div>
+              <span className="errorText">
+                {errors.origin && " Error : Origin is required!"}<br></br>
+                {errors.destination && " Error : Destination is required!"}<br></br>
+                {netError ? 'Sorry!!! No flights available for this scenario': ''}
+              </span>
           </div>
           </form>
+          {resultTable ? 
+            <div className="resultTableDiv">
+                <table className="resultTable">
+                  <thead>
+                    <tr>
+                      <th>S.No</th>
+                      <th>FLight Number</th>
+                      <th>Departure Time</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {responseData.map((data, key) => {
+                      return (
+                          <tr key={key}>
+                            <td>{key+1}</td>
+                            <td>{data.flightNumber}</td>
+                            <td>{data.departureTime}</td>
+                          </tr>
+                        )
+                    })}
+                    </tbody>
+                </table>
+            </div> 
+            : ''
+            }
         </div>
       </div>
-      <pre>
-        <code>
-          {responseData && JSON.stringify(responseData, null, 4)}
-        </code>
-      </pre>
     </div>
   );
 }
 
 export default App;
+
+
