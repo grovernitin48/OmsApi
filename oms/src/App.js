@@ -113,29 +113,70 @@ function App() {
     }).then(res=>{
       parser.parseString(res.data,
         function(err, result) {
-          window.result = result;
-           console.log(result);
             var response = result["soapenv:Envelope"]["soapenv:Body"]["ndc:IATA_AirShoppingRS"]["ndc:Response"];
-            var dataList = response["ndc:DataLists"]
-            var offerList = response["ndc:OffersGroup"]["ndc:CarrierOffers"]["ndc:Offer"]
+            window.response = response;
+            var dataList = response["ndc:DataLists"];
+            var offerList = response["ndc:OffersGroup"]["ndc:CarrierOffers"]["ndc:Offer"];
             var priceClassList = dataList["ndc:PriceClassList"]["ndc:PriceClass"];
-            var journeyId;
             var priceClass = priceClassList.find(classList => classList["ndc:Code"] === `${getValues('fareFamily')}`);
-            if(priceClass) {
+            if(priceClass){
               var priceClassId = priceClass['ndc:PriceClassID'];
-              offerList.find(temp => temp["ndc:JourneyOverview"]["ndc:JourneyPriceClass"].find(arr => {
-                if(arr["ndc:PriceClassRefID"] === priceClassId) {
-                  journeyId = arr["ndc:PaxJourneyRefID"];
-                };
-                return arr["ndc:PriceClassRefID"] === priceClassId
-              }))
-              var segmentId = dataList["ndc:PaxJourneyList"]["ndc:PaxJourney"].find(arr => arr["ndc:PaxJourneyID"] === journeyId)["ndc:PaxSegmentRefID"][0];
-              var paxSegment = dataList["ndc:PaxSegmentList"]["ndc:PaxSegment"].find(arr => arr["ndc:PaxSegmentID"] === segmentId)
-              var departureTime = paxSegment["ndc:Dep"]["ndc:AircraftScheduledDateTime"]
-              var flightNumber = paxSegment["ndc:MarketingCarrierInfo"]["ndc:CarrierDesigCode"]+paxSegment["ndc:MarketingCarrierInfo"]["ndc:MarketingCarrierFlightNumberText"];
-                var endResult = {departureTime : departureTime, flightNumber : flightNumber}
-                setResponseData(responseData => [...responseData, endResult]);
-                setResultTable(true);
+              if(!checked) {
+                  var allJourneyArray = offerList
+                    .filter(temp => temp["ndc:JourneyOverview"]["ndc:JourneyPriceClass"]["ndc:PriceClassRefID"] === priceClassId)
+                    .map(temp => temp["ndc:JourneyOverview"]["ndc:JourneyPriceClass"]["ndc:PaxJourneyRefID"]);
+                  var allSegmentArray = dataList["ndc:PaxJourneyList"]["ndc:PaxJourney"]
+                    .filter(arr => allJourneyArray.includes(arr["ndc:PaxJourneyID"]))
+                    .map(arr => arr["ndc:PaxSegmentRefID"]);
+                  var allFlightArray = dataList["ndc:PaxSegmentList"]["ndc:PaxSegment"]
+                    .filter(arr => allSegmentArray.includes(arr["ndc:PaxSegmentID"]))
+                    .map(arr => ({
+                          flightNumber : arr["ndc:MarketingCarrierInfo"]["ndc:CarrierDesigCode"]+arr["ndc:MarketingCarrierInfo"]["ndc:MarketingCarrierFlightNumberText"],
+                          departDate : arr["ndc:Dep"]["ndc:AircraftScheduledDateTime"].split(/[A-Z]/).reverse().pop().split('-').reverse().join("-"),
+                          departTime : arr["ndc:Dep"]["ndc:AircraftScheduledDateTime"].split(/[A-Z]/).pop().split('-').reverse().join("-")
+                        }));
+                  setResponseData(allFlightArray);
+                  setResultTable(true);
+              }
+              else {
+                    var allJourneyOut = [...new Set(offerList
+                      .filter(temp => temp["ndc:JourneyOverview"]["ndc:JourneyPriceClass"][0]["ndc:PriceClassRefID"] === priceClassId)
+                      .map(temp => temp["ndc:JourneyOverview"]["ndc:JourneyPriceClass"][0]["ndc:PaxJourneyRefID"]))];
+                    var allSegmentOut = dataList["ndc:PaxJourneyList"]["ndc:PaxJourney"]
+                      .filter(arr => allJourneyOut.includes(arr["ndc:PaxJourneyID"]))
+                      .map(arr => arr["ndc:PaxSegmentRefID"]);
+                    var allOutSegStr = [];
+                      allSegmentOut.forEach(el => {Array.isArray(el) ? allOutSegStr.push(el[0]) : allOutSegStr.push(el)});
+
+                    var allJourneyRet = [...new Set(offerList
+                      .filter(temp => temp["ndc:JourneyOverview"]["ndc:JourneyPriceClass"][1]["ndc:PriceClassRefID"] === priceClassId)
+                      .map(temp => temp["ndc:JourneyOverview"]["ndc:JourneyPriceClass"][1]["ndc:PaxJourneyRefID"]))];
+                    var allSegmentRet = dataList["ndc:PaxJourneyList"]["ndc:PaxJourney"]
+                      .filter(arr => allJourneyRet.includes(arr["ndc:PaxJourneyID"]))
+                      .map(arr => arr["ndc:PaxSegmentRefID"]);
+                    var allRetSegStr = [];
+                      allSegmentRet.forEach(el => {Array.isArray(el) ? allRetSegStr.push(el[0]) : allRetSegStr.push(el)});
+
+                    var allOutFlightArray = dataList["ndc:PaxSegmentList"]["ndc:PaxSegment"]
+                      .filter(arr => allOutSegStr.includes(arr["ndc:PaxSegmentID"]))
+                      .map(arr => ({
+                          flightNumber : arr["ndc:MarketingCarrierInfo"]["ndc:CarrierDesigCode"]+arr["ndc:MarketingCarrierInfo"]["ndc:MarketingCarrierFlightNumberText"]+"--Outbound",
+                          departDate : arr["ndc:Dep"]["ndc:AircraftScheduledDateTime"].split(/[A-Z]/).reverse().pop().split('-').reverse().join("-"),
+                          departTime : arr["ndc:Dep"]["ndc:AircraftScheduledDateTime"].split(/[A-Z]/).pop().split('-').reverse().join("-")
+                        }));
+
+                    var allRetFlightArray = dataList["ndc:PaxSegmentList"]["ndc:PaxSegment"]
+                      .filter(arr => allRetSegStr.includes(arr["ndc:PaxSegmentID"]))
+                      .map(arr => ({
+                          flightNumber : arr["ndc:MarketingCarrierInfo"]["ndc:CarrierDesigCode"]+arr["ndc:MarketingCarrierInfo"]["ndc:MarketingCarrierFlightNumberText"]+"--Return",
+                          departDate : arr["ndc:Dep"]["ndc:AircraftScheduledDateTime"].split(/[A-Z]/).reverse().pop().split('-').reverse().join("-"),
+                          departTime : arr["ndc:Dep"]["ndc:AircraftScheduledDateTime"].split(/[A-Z]/).pop().split('-').reverse().join("-")
+                        }));
+                      
+                      Array.prototype.push.apply(allOutFlightArray,allRetFlightArray);
+                      setResponseData(allOutFlightArray);
+                      setResultTable(true);
+              }
             }
             else {
               setNetError(true);
@@ -156,8 +197,9 @@ function App() {
   }, [fetchData])
 
   const onSubmitData = (data) => {
+    setResponseData([]);
+    setResultTable(false);
     setNetError(false);
-    console.log(data);
   };
 
   const handleChangeFrom = (dateChange) => {
@@ -319,12 +361,17 @@ function App() {
           </div>
           </form>
           {resultTable ? 
+          <div>
             <div className="resultTableDiv">
+              <div className="tableHeader">
+                <span >Available Flights : </span>
+              </div>
                 <table className="resultTable">
                   <thead>
                     <tr>
                       <th>S.No</th>
                       <th>FLight Number</th>
+                      <th>Departure Date</th>
                       <th>Departure Time</th>
                     </tr>
                   </thead>
@@ -334,13 +381,15 @@ function App() {
                           <tr key={key}>
                             <td>{key+1}</td>
                             <td>{data.flightNumber}</td>
-                            <td>{data.departureTime}</td>
+                            <td>{data.departDate}</td>
+                            <td>{data.departTime}</td>
                           </tr>
                         )
                     })}
                     </tbody>
                 </table>
             </div> 
+            </div>
             : ''
             }
         </div>
@@ -350,5 +399,3 @@ function App() {
 }
 
 export default App;
-
-
