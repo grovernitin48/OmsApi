@@ -259,6 +259,7 @@ function App() {
         <table className="fareTable">
           <thead>
             <tr>
+              <th>S.No</th>
               <th>Fare Family</th>
               <th>Change</th>
               <th>Refund</th>
@@ -268,6 +269,7 @@ function App() {
           {tableData.map((data, key) => {
             return (
                 <tr key={key}>
+                  <td>{key+1}</td>
                   <td>{data.name}</td>
                   <td>{data.change}</td>
                   <td>{data.refund}</td>
@@ -346,7 +348,7 @@ function App() {
                   <select placeholder="Fare Family" name="fareFamily" ref={register}>
                   {tableData.map((data, key) => {
                     return (
-                      <option key={key} value={data.code}>{data.name}</option>
+                      <option key={key} value={data.code}>{key+1+` - `+data.name}</option>
                       )
                     })}
                 </select>
