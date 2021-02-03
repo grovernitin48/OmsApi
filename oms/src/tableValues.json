@@ -12,6 +12,12 @@
         "refund" : "Permitted (with fee)"
     },
     {
+        "code" : "EcoSpecial",
+        "name" : "Economy Special",
+        "change" : "Permitted (with fee)",
+        "refund" : "Not permitted"
+    },
+    {
         "code" : "EcoBasic",
         "name" : "Economy Basic",
         "change" : "Permitted (with fee)",
@@ -47,7 +53,18 @@
         "change" : "Not permitted",
         "refund" : "Permitted (with fee)"
     },
-
+    {
+        "code" : "PEBasic",
+        "name" : "Premium Economy Basic",
+        "change" : "Permitted (with fee)",
+        "refund" : "Permitted (with fee)"
+    },
+    {
+        "code" : "PESpecial",
+        "name" : "Premium Economy Special",
+        "change" : "Permitted (with fee)",
+        "refund" : "Not permitted"
+    },
     {
         "code" : "PEBasicPlus",
         "name" : "Premium Eco Basic Plus",
@@ -77,6 +94,18 @@
         "name" : "Business Basic Plus",
         "change" : "Permitted (with fee)",
         "refund" : "Permitted (with fee)"
+    },
+    {
+        "code" : "BSSpecial",
+        "name" : "Business Special",
+        "change" : "Permitted (with fee)",
+        "refund" : "Not permitted"
+    },
+    {
+        "code" : "BSSpecialPlus",
+        "name" : "Business Special Plus",
+        "change" : "Permitted (with fee)",
+        "refund" : "Not permitted"
     },
     {
         "code" : "BSFlexPlus",

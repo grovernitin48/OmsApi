@@ -114,10 +114,11 @@ function App() {
       parser.parseString(res.data,
         function(err, result) {
             var response = result["soapenv:Envelope"]["soapenv:Body"]["ndc:IATA_AirShoppingRS"]["ndc:Response"];
-            window.response = response;
+            window.result = response;
             var dataList = response["ndc:DataLists"];
             var offerList = response["ndc:OffersGroup"]["ndc:CarrierOffers"]["ndc:Offer"];
             var priceClassList = dataList["ndc:PriceClassList"]["ndc:PriceClass"];
+            window.response = priceClassList;
             var priceClass = priceClassList.find(classList => classList["ndc:Code"] === `${getValues('fareFamily')}`);
             if(priceClass){
               var priceClassId = priceClass['ndc:PriceClassID'];
@@ -125,18 +126,45 @@ function App() {
                   var allJourneyArray = offerList
                     .filter(temp => temp["ndc:JourneyOverview"]["ndc:JourneyPriceClass"]["ndc:PriceClassRefID"] === priceClassId)
                     .map(temp => temp["ndc:JourneyOverview"]["ndc:JourneyPriceClass"]["ndc:PaxJourneyRefID"]);
-                  var allSegmentArray = dataList["ndc:PaxJourneyList"]["ndc:PaxJourney"]
-                    .filter(arr => allJourneyArray.includes(arr["ndc:PaxJourneyID"]))
-                    .map(arr => arr["ndc:PaxSegmentRefID"]);
-                  var allFlightArray = dataList["ndc:PaxSegmentList"]["ndc:PaxSegment"]
-                    .filter(arr => allSegmentArray.includes(arr["ndc:PaxSegmentID"]))
-                    .map(arr => ({
-                          flightNumber : arr["ndc:MarketingCarrierInfo"]["ndc:CarrierDesigCode"]+arr["ndc:MarketingCarrierInfo"]["ndc:MarketingCarrierFlightNumberText"],
-                          departDate : arr["ndc:Dep"]["ndc:AircraftScheduledDateTime"].split(/[A-Z]/).reverse().pop().split('-').reverse().join("-"),
-                          departTime : arr["ndc:Dep"]["ndc:AircraftScheduledDateTime"].split(/[A-Z]/).pop().split('-').reverse().join("-")
-                        }));
-                  setResponseData(allFlightArray);
-                  setResultTable(true);
+                    var allSegmentResponse = dataList["ndc:PaxJourneyList"]["ndc:PaxJourney"];
+                    var temp = [];
+                    var allSegmentArray = [];
+                    if(Array.isArray(allSegmentResponse)){
+                       allSegmentResponse
+                        .filter(arr => allJourneyArray.includes(arr["ndc:PaxJourneyID"]))
+                        .map(arr => arr["ndc:PaxSegmentRefID"]);
+                    }
+                    else {
+                      temp.push(allSegmentResponse);
+                      allSegmentArray = temp
+                        .filter(arr => allJourneyArray.includes(arr["ndc:PaxJourneyID"]))
+                        .map(arr => arr["ndc:PaxSegmentRefID"]);
+                    }
+                    var allFlightResponse = dataList["ndc:PaxSegmentList"]["ndc:PaxSegment"];
+                    var temp2 = [];
+                    var allFlightArray = [];
+                    if(Array.isArray(allFlightResponse)){
+                      allFlightArray = allFlightResponse
+                        .filter(arr => allSegmentArray.includes(arr["ndc:PaxSegmentID"]))
+                        .map(arr => ({
+                              flightNumber : arr["ndc:MarketingCarrierInfo"]["ndc:CarrierDesigCode"]+arr["ndc:MarketingCarrierInfo"]["ndc:MarketingCarrierFlightNumberText"],
+                              departDate : arr["ndc:Dep"]["ndc:AircraftScheduledDateTime"].split(/[A-Z]/).reverse().pop().split('-').reverse().join("-"),
+                              departTime : arr["ndc:Dep"]["ndc:AircraftScheduledDateTime"].split(/[A-Z]/).pop().split('-').reverse().join("-")
+                            }));
+                    }
+                    else {
+                      temp2.push(allFlightResponse);
+                      allFlightArray = temp2
+                        .filter(arr => allSegmentArray.includes(arr["ndc:PaxSegmentID"]))
+                        .map(arr => ({
+                              flightNumber : arr["ndc:MarketingCarrierInfo"]["ndc:CarrierDesigCode"]+arr["ndc:MarketingCarrierInfo"]["ndc:MarketingCarrierFlightNumberText"],
+                              departDate : arr["ndc:Dep"]["ndc:AircraftScheduledDateTime"].split(/[A-Z]/).reverse().pop().split('-').reverse().join("-"),
+                              departTime : arr["ndc:Dep"]["ndc:AircraftScheduledDateTime"].split(/[A-Z]/).pop().split('-').reverse().join("-")
+                            }));
+                    }
+                    
+                    setResponseData(allFlightArray);
+                    setResultTable(true);
               }
               else {
                     var allJourneyOut = [...new Set(offerList
@@ -185,6 +213,7 @@ function App() {
       
       })
       .catch(err=>{
+        setNetError(true);
         console.log(err)
       })
       .finally(function(){

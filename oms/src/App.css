@@ -47,6 +47,7 @@ textarea:focus, input:focus, button:focus, select:focus{
 }
 .fares {
   width: 42%;
+  margin-bottom: 4rem;
 }
 .fareTable {
   border-collapse:collapse;
