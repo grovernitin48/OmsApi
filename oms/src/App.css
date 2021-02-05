@@ -1,5 +1,5 @@
 .App {
-  background-color: #282c34;
+  background-color: white;
   text-align: left;
   width: auto;
   min-height: 100vh;
@@ -10,7 +10,7 @@ body {
   margin: 0px;
 }
 ::placeholder {
-  color: rgb(255, 119, 0);
+  color: rgb(0, 170, 173);
   font-weight: bold;
 }
 textarea:focus, input:focus, button:focus, select:focus{
@@ -22,6 +22,13 @@ textarea:focus, input:focus, button:focus, select:focus{
   margin-left: 0.5%;
   margin-right: 0.5%;
   font-size: 1.2rem;
+}
+.inOutBound {
+  font-weight:bolder;
+  padding: 4px;
+  margin-left: 0.5%;
+  margin-right: 0.5%;
+  font-size: 1rem;
 }
 .loadingText {
   font-weight:lighter;
@@ -76,8 +83,8 @@ tr:last-of-type td:last-of-type {
   padding-top: 6px;
   padding-bottom: 6px;
   text-align: left;
-  background-color: rgb(255, 119, 0);
-  color: white;
+  background-color: rgb(0, 170, 173);
+  color: rgb(0, 170, 173);
 }
 button {
   margin: .45rem;
@@ -85,9 +92,9 @@ button {
   padding: .25rem .75rem;
   font-size: 1.2rem;
   cursor: pointer;
-  background: rgb(255, 119, 0);
+  background: rgb(0, 170, 173);
   color: white;
-  border: 2px solid rgb(255, 119, 0);
+  border: 2px solid rgb(0, 170, 173);
   border-radius: 5px;
   -webkit-border-radius: 5px;
   -moz-border-radius: 5px;
@@ -99,7 +106,7 @@ input, select {
   margin: .45rem;
   padding: 6px 2px; 
   line-height: 10px;
-  border: 1px solid rgb(255, 119, 0);
+  border: 1px solid rgb(0, 170, 173);
   border-radius: 5px;
   -webkit-border-radius: 5px;
   -moz-border-radius: 5px;
@@ -113,8 +120,8 @@ h1 {
 }
 
 blockquote {
-  border-top: 2px solid rgb(255, 119, 0);
-  border-bottom: 2px solid rgb(255, 119, 0);
+  border-top: 2px solid rgb(0, 170, 173);
+  border-bottom: 2px solid rgb(0, 170, 173);
   font-size: 2rem;
   margin: 5% 8%;
   font-weight: 200;
@@ -135,17 +142,17 @@ small {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: rgb(0, 170, 173);
 }
 .App-body {
   display: flex;
   flex-direction: row;
   align-items :flex-start;
   justify-content:center;
-  color: white;
+  color: rgb(0, 170, 173);
 }
 .App {
-  color: white;
+  color: rgb(0, 170, 173);
 }
 .App-link {
   color: #61dafb;
@@ -159,15 +166,15 @@ small {
   border-collapse:collapse;
 }
 .resultTable td {
-  border: 1px solid #d1881b;
+  border: 1px solid rgb(0, 170, 173);
   padding: 4px;
 }
 .resultTable th {
-  border: 1px solid #282c34;
+  border: 1px solid white;
   padding: 6px;
   padding-bottom: 6px;
   text-align: left;
-  background-color: rgb(255, 119, 0);
+  background-color: rgb(0, 170, 173);
   color: white;
 }
 .dates {
@@ -177,4 +184,7 @@ small {
   font-weight: bold;
   font-size: 1.2rem;
   margin-bottom: 0.8rem;
+}
+.darkblue {
+  color: #004164;
 }

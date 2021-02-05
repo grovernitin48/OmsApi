@@ -13,6 +13,7 @@ import { DragSwitch } from 'react-dragswitch';
 import 'react-dragswitch/dist/index.css';
 import { css } from '@emotion/react';
 import { RingLoader } from 'react-spinners';
+import _ from 'lodash';
 
 function App() {
     const override = css`
@@ -24,15 +25,22 @@ function App() {
   let [resultTable, setResultTable] = useState(false);
   let [loading, setLoading] = useState(false);
   let [netError, setNetError] = useState(false);
+  let [crError, setCrError] = useState(false);
   const [fromDate, setFromDate] = useState(null);
   const [toDate, setToDate] = useState(null);
   const [checked, setChecked] = useState(true);
+  const [google, setGoogle] = useState(false);
+  const [family, setFamily] = useState(true);
   const tableData = [...tableJson];
   const countryData = [...countryJson];
   const currencyData = [...currencyJson];
   const { register, handleSubmit, getValues, errors, control, setValue } = useForm({
     defaultValues: {
       fareFamily: "EcoSuperValue",
+      change: "",
+      refund: "",
+      changeIn: "",
+      refundIn: "",
       sellerId: "TRAVELFUSIONIBETA",
       pointOfSale: "JP",
       currency: "GBP",
@@ -57,11 +65,12 @@ function App() {
     <PrimaryLangID>en</PrimaryLangID>
     <VersionNumber>18.2</VersionNumber>
     </PayloadAttributes>
-    <PointOfSale>
-    <Country>
-    <CountryCode>${getValues('pointOfSale')}</CountryCode>
-    </Country>
-    </PointOfSale>
+    ${!google ? 
+    `<PointOfSale>
+      <Country>
+      <CountryCode>${getValues('pointOfSale')}</CountryCode>
+      </Country>
+      </PointOfSale>` : ''}
     <Request>
     <FlightCriteria>
     <OriginDestCriteria>
@@ -119,18 +128,217 @@ function App() {
             var offerList = response["ndc:OffersGroup"]["ndc:CarrierOffers"]["ndc:Offer"];
             var priceClassList = dataList["ndc:PriceClassList"]["ndc:PriceClass"];
             window.response = priceClassList;
+
+          if(family){
+            var changeInputOut = getValues('change');
+            var refundInputOut = getValues('refund');
+            var priceClassArray = [];
+            if(changeInputOut && refundInputOut=== ""){
+              changeInputOut = "Changes : " + changeInputOut;
+              priceClassArray = priceClassList
+                  .filter(t => t["ndc:Desc"][1]["ndc:DescText"] === changeInputOut)
+                  .map(t =>t["ndc:PriceClassID"]);
+            }
+            else if(refundInputOut && changeInputOut === ""){
+              refundInputOut = "Refund : " + refundInputOut;
+              priceClassArray = priceClassList
+                  .filter(t => t["ndc:Desc"][2]["ndc:DescText"] === refundInputOut)
+                  .map(t =>t["ndc:PriceClassID"]);
+            }
+            else {
+              changeInputOut = "Changes : " + changeInputOut;
+              refundInputOut = "Refund : " + refundInputOut;
+              priceClassArray = priceClassList
+                  .filter(t => t["ndc:Desc"][1]["ndc:DescText"] === changeInputOut && 
+                  t["ndc:Desc"][2]["ndc:DescText"] === refundInputOut)
+                  .map(t =>t["ndc:PriceClassID"]);
+            }
+            
+            if(!checked){
+            if(!priceClassArray.length){setNetError(true)}
+            else{
+              var finalResultTable = [];
+              const findFlights = (priceClassId) => {
+                let allJourneyArray = offerList
+                    .filter(temp => temp["ndc:JourneyOverview"]["ndc:JourneyPriceClass"]["ndc:PriceClassRefID"] === priceClassId)
+                    .map(temp => temp["ndc:JourneyOverview"]["ndc:JourneyPriceClass"]["ndc:PaxJourneyRefID"]);
+                    let allSegmentResponse = dataList["ndc:PaxJourneyList"]["ndc:PaxJourney"];
+                    let temp = [];
+                    let allSegmentArray = [];
+                    if(Array.isArray(allSegmentResponse)){
+                       allSegmentArray = allSegmentResponse
+                        .filter(arr => allJourneyArray.includes(arr["ndc:PaxJourneyID"]))
+                        .map(arr => arr["ndc:PaxSegmentRefID"]);
+                    }
+                    else {
+                      temp.push(allSegmentResponse);
+                      allSegmentArray = temp
+                        .filter(arr => allJourneyArray.includes(arr["ndc:PaxJourneyID"]))
+                        .map(arr => arr["ndc:PaxSegmentRefID"]);
+                    }
+                    let allSegStr = [];
+                    allSegmentArray.forEach(el => {Array.isArray(el) ? allSegStr.push(el[0]) : allSegStr.push(el)});
+
+                    let allFlightResponse = dataList["ndc:PaxSegmentList"]["ndc:PaxSegment"];
+                    let temp2 = [];
+                    let allFlightArray = [];
+                    if(Array.isArray(allFlightResponse)){
+                      allFlightArray = allFlightResponse
+                        .filter(arr => allSegStr.includes(arr["ndc:PaxSegmentID"]))
+                        .map(arr => ({
+                              flightNumber : arr["ndc:MarketingCarrierInfo"]["ndc:CarrierDesigCode"]+arr["ndc:MarketingCarrierInfo"]["ndc:MarketingCarrierFlightNumberText"],
+                              departDate : arr["ndc:Dep"]["ndc:AircraftScheduledDateTime"].split(/[A-Z]/).reverse().pop().split('-').reverse().join("-"),
+                              departTime : arr["ndc:Dep"]["ndc:AircraftScheduledDateTime"].split(/[A-Z]/).pop().split('-').reverse().join("-")
+                            }));
+                    }
+                    else {
+                      temp2.push(allFlightResponse);
+                      allFlightArray = temp2
+                        .filter(arr => allSegStr.includes(arr["ndc:PaxSegmentID"]))
+                        .map(arr => ({
+                              flightNumber : arr["ndc:MarketingCarrierInfo"]["ndc:CarrierDesigCode"]+arr["ndc:MarketingCarrierInfo"]["ndc:MarketingCarrierFlightNumberText"],
+                              departDate : arr["ndc:Dep"]["ndc:AircraftScheduledDateTime"].split(/[A-Z]/).reverse().pop().split('-').reverse().join("-"),
+                              departTime : arr["ndc:Dep"]["ndc:AircraftScheduledDateTime"].split(/[A-Z]/).pop().split('-').reverse().join("-")
+                            }));
+                    }
+                    console.log(allFlightArray);
+                    Array.prototype.push.apply(finalResultTable,allFlightArray);
+                    //!finalResultTable.length ? finalResultTable.push(allFlightArray) : Array.prototype.push.apply(finalResultTable,allFlightArray);
+                 }
+                priceClassArray.forEach(element => findFlights(element));
+                setResponseData(_.uniqBy(finalResultTable, 'flightNumber'));
+                setResultTable(true);
+            }              
+          }
+          else {
+            var changeInputIn = getValues('changeIn');
+            var refundInputIn = getValues('refundIn');
+            var priceClassArrayIn = [];
+            if(changeInputIn && refundInputIn=== ""){
+              changeInputIn = "Changes : " + changeInputIn;
+              priceClassArrayIn = priceClassList
+                  .filter(t => t["ndc:Desc"][1]["ndc:DescText"] === changeInputIn)
+                  .map(t =>t["ndc:PriceClassID"]);
+            }
+            else if(refundInputIn && changeInputIn === ""){
+              refundInputIn = "Refund : " + refundInputIn;
+              priceClassArrayIn = priceClassList
+                  .filter(t => t["ndc:Desc"][2]["ndc:DescText"] === refundInputIn)
+                  .map(t =>t["ndc:PriceClassID"]);
+            }
+            else {
+              changeInputIn = "Changes : " + changeInputIn;
+              refundInputIn = "Refund : " + refundInputIn;
+              priceClassArrayIn = priceClassList
+                  .filter(t => t["ndc:Desc"][1]["ndc:DescText"] === changeInputIn && 
+                  t["ndc:Desc"][2]["ndc:DescText"] === refundInputIn)
+                  .map(t =>t["ndc:PriceClassID"]);
+            }
+            if(!priceClassArray.length && !priceClassArrayIn.length){setNetError(true)}
+            else{
+              let allOutFlightArrayBig = [];
+              let allRetFlightArrayBig = [];
+              const findFlightsOut = (priceClassId) => {
+                  let allJourneyOut = [...new Set(offerList
+                    .filter(temp => temp["ndc:JourneyOverview"]["ndc:JourneyPriceClass"][0]["ndc:PriceClassRefID"] === priceClassId)
+                    .map(temp => temp["ndc:JourneyOverview"]["ndc:JourneyPriceClass"][0]["ndc:PaxJourneyRefID"]))];
+                  let allSegmentOut = dataList["ndc:PaxJourneyList"]["ndc:PaxJourney"]
+                    .filter(arr => allJourneyOut.includes(arr["ndc:PaxJourneyID"]))
+                    .map(arr => arr["ndc:PaxSegmentRefID"]);
+                  let allOutSegStr = [];
+                    allSegmentOut.forEach(el => {Array.isArray(el) ? allOutSegStr.push(el[0]) : allOutSegStr.push(el)});
+                  let allOutFlightArray = dataList["ndc:PaxSegmentList"]["ndc:PaxSegment"]
+                    .filter(arr => allOutSegStr.includes(arr["ndc:PaxSegmentID"]))
+                    .map(arr => ({
+                        flightNumber : arr["ndc:MarketingCarrierInfo"]["ndc:CarrierDesigCode"]+arr["ndc:MarketingCarrierInfo"]["ndc:MarketingCarrierFlightNumberText"]+"--Outbound",
+                        departDate : arr["ndc:Dep"]["ndc:AircraftScheduledDateTime"].split(/[A-Z]/).reverse().pop().split('-').reverse().join("-"),
+                        departTime : arr["ndc:Dep"]["ndc:AircraftScheduledDateTime"].split(/[A-Z]/).pop().split('-').reverse().join("-")
+                      }));
+
+                    Array.prototype.push.apply(allOutFlightArrayBig,allOutFlightArray);
+                  }
+                const findFlightsIn = (priceClassId) => {
+                    let allJourneyRet = [...new Set(offerList
+                      .filter(temp => temp["ndc:JourneyOverview"]["ndc:JourneyPriceClass"][1]["ndc:PriceClassRefID"] === priceClassId)
+                      .map(temp => temp["ndc:JourneyOverview"]["ndc:JourneyPriceClass"][1]["ndc:PaxJourneyRefID"]))];
+                    let allSegmentRet = dataList["ndc:PaxJourneyList"]["ndc:PaxJourney"]
+                      .filter(arr => allJourneyRet.includes(arr["ndc:PaxJourneyID"]))
+                      .map(arr => arr["ndc:PaxSegmentRefID"]);
+                    let allRetSegStr = [];
+                      allSegmentRet.forEach(el => {Array.isArray(el) ? allRetSegStr.push(el[0]) : allRetSegStr.push(el)});
+                    let allRetFlightArray = dataList["ndc:PaxSegmentList"]["ndc:PaxSegment"]
+                      .filter(arr => allRetSegStr.includes(arr["ndc:PaxSegmentID"]))
+                      .map(arr => ({
+                          flightNumber : arr["ndc:MarketingCarrierInfo"]["ndc:CarrierDesigCode"]+arr["ndc:MarketingCarrierInfo"]["ndc:MarketingCarrierFlightNumberText"]+"--Return",
+                          departDate : arr["ndc:Dep"]["ndc:AircraftScheduledDateTime"].split(/[A-Z]/).reverse().pop().split('-').reverse().join("-"),
+                          departTime : arr["ndc:Dep"]["ndc:AircraftScheduledDateTime"].split(/[A-Z]/).pop().split('-').reverse().join("-")
+                        }));
+                    Array.prototype.push.apply(allRetFlightArrayBig,allRetFlightArray);
+                   }
+                   priceClassArray.forEach(element => findFlightsOut(element));
+                   priceClassArrayIn.forEach(element => findFlightsIn(element));
+                   Array.prototype.push.apply(allOutFlightArrayBig,allRetFlightArrayBig);
+                   //console.log(allOutFlightArrayBig);
+                   setResponseData(_.uniqBy(allOutFlightArrayBig, 'flightNumber'));
+                   setResultTable(true);
+            }
+          }
+        }
+          else{
             var priceClass = priceClassList.find(classList => classList["ndc:Code"] === `${getValues('fareFamily')}`);
             if(priceClass){
               var priceClassId = priceClass['ndc:PriceClassID'];
-              if(!checked) {
+              if(checked) {
+                var allJourneyOut = [...new Set(offerList
+                  .filter(temp => temp["ndc:JourneyOverview"]["ndc:JourneyPriceClass"][0]["ndc:PriceClassRefID"] === priceClassId)
+                  .map(temp => temp["ndc:JourneyOverview"]["ndc:JourneyPriceClass"][0]["ndc:PaxJourneyRefID"]))];
+
+                var allSegmentOut = dataList["ndc:PaxJourneyList"]["ndc:PaxJourney"]
+                  .filter(arr => allJourneyOut.includes(arr["ndc:PaxJourneyID"]))
+                  .map(arr => arr["ndc:PaxSegmentRefID"]);
+
+                var allOutSegStr = [];
+                  allSegmentOut.forEach(el => {Array.isArray(el) ? allOutSegStr.push(el[0]) : allOutSegStr.push(el)});
+
+                var allJourneyRet = [...new Set(offerList
+                  .filter(temp => temp["ndc:JourneyOverview"]["ndc:JourneyPriceClass"][1]["ndc:PriceClassRefID"] === priceClassId)
+                  .map(temp => temp["ndc:JourneyOverview"]["ndc:JourneyPriceClass"][1]["ndc:PaxJourneyRefID"]))];
+                var allSegmentRet = dataList["ndc:PaxJourneyList"]["ndc:PaxJourney"]
+                  .filter(arr => allJourneyRet.includes(arr["ndc:PaxJourneyID"]))
+                  .map(arr => arr["ndc:PaxSegmentRefID"]);
+                var allRetSegStr = [];
+                  allSegmentRet.forEach(el => {Array.isArray(el) ? allRetSegStr.push(el[0]) : allRetSegStr.push(el)});
+
+                var allOutFlightArray = dataList["ndc:PaxSegmentList"]["ndc:PaxSegment"]
+                  .filter(arr => allOutSegStr.includes(arr["ndc:PaxSegmentID"]))
+                  .map(arr => ({
+                      flightNumber : arr["ndc:MarketingCarrierInfo"]["ndc:CarrierDesigCode"]+arr["ndc:MarketingCarrierInfo"]["ndc:MarketingCarrierFlightNumberText"]+"--Outbound",
+                      departDate : arr["ndc:Dep"]["ndc:AircraftScheduledDateTime"].split(/[A-Z]/).reverse().pop().split('-').reverse().join("-"),
+                      departTime : arr["ndc:Dep"]["ndc:AircraftScheduledDateTime"].split(/[A-Z]/).pop().split('-').reverse().join("-")
+                    }));
+
+                var allRetFlightArray = dataList["ndc:PaxSegmentList"]["ndc:PaxSegment"]
+                  .filter(arr => allRetSegStr.includes(arr["ndc:PaxSegmentID"]))
+                  .map(arr => ({
+                      flightNumber : arr["ndc:MarketingCarrierInfo"]["ndc:CarrierDesigCode"]+arr["ndc:MarketingCarrierInfo"]["ndc:MarketingCarrierFlightNumberText"]+"--Return",
+                      departDate : arr["ndc:Dep"]["ndc:AircraftScheduledDateTime"].split(/[A-Z]/).reverse().pop().split('-').reverse().join("-"),
+                      departTime : arr["ndc:Dep"]["ndc:AircraftScheduledDateTime"].split(/[A-Z]/).pop().split('-').reverse().join("-")
+                    }));
+                  
+                  Array.prototype.push.apply(allOutFlightArray,allRetFlightArray);
+                  setResponseData(allOutFlightArray);
+                  setResultTable(true);
+               }
+              else {
                   var allJourneyArray = offerList
                     .filter(temp => temp["ndc:JourneyOverview"]["ndc:JourneyPriceClass"]["ndc:PriceClassRefID"] === priceClassId)
                     .map(temp => temp["ndc:JourneyOverview"]["ndc:JourneyPriceClass"]["ndc:PaxJourneyRefID"]);
+
                     var allSegmentResponse = dataList["ndc:PaxJourneyList"]["ndc:PaxJourney"];
                     var temp = [];
                     var allSegmentArray = [];
                     if(Array.isArray(allSegmentResponse)){
-                       allSegmentResponse
+                       allSegmentArray = allSegmentResponse
                         .filter(arr => allJourneyArray.includes(arr["ndc:PaxJourneyID"]))
                         .map(arr => arr["ndc:PaxSegmentRefID"]);
                     }
@@ -162,53 +370,14 @@ function App() {
                               departTime : arr["ndc:Dep"]["ndc:AircraftScheduledDateTime"].split(/[A-Z]/).pop().split('-').reverse().join("-")
                             }));
                     }
-                    
                     setResponseData(allFlightArray);
                     setResultTable(true);
+                  }
+                }
+                else {
+                  setNetError(true);
+                }
               }
-              else {
-                    var allJourneyOut = [...new Set(offerList
-                      .filter(temp => temp["ndc:JourneyOverview"]["ndc:JourneyPriceClass"][0]["ndc:PriceClassRefID"] === priceClassId)
-                      .map(temp => temp["ndc:JourneyOverview"]["ndc:JourneyPriceClass"][0]["ndc:PaxJourneyRefID"]))];
-                    var allSegmentOut = dataList["ndc:PaxJourneyList"]["ndc:PaxJourney"]
-                      .filter(arr => allJourneyOut.includes(arr["ndc:PaxJourneyID"]))
-                      .map(arr => arr["ndc:PaxSegmentRefID"]);
-                    var allOutSegStr = [];
-                      allSegmentOut.forEach(el => {Array.isArray(el) ? allOutSegStr.push(el[0]) : allOutSegStr.push(el)});
-
-                    var allJourneyRet = [...new Set(offerList
-                      .filter(temp => temp["ndc:JourneyOverview"]["ndc:JourneyPriceClass"][1]["ndc:PriceClassRefID"] === priceClassId)
-                      .map(temp => temp["ndc:JourneyOverview"]["ndc:JourneyPriceClass"][1]["ndc:PaxJourneyRefID"]))];
-                    var allSegmentRet = dataList["ndc:PaxJourneyList"]["ndc:PaxJourney"]
-                      .filter(arr => allJourneyRet.includes(arr["ndc:PaxJourneyID"]))
-                      .map(arr => arr["ndc:PaxSegmentRefID"]);
-                    var allRetSegStr = [];
-                      allSegmentRet.forEach(el => {Array.isArray(el) ? allRetSegStr.push(el[0]) : allRetSegStr.push(el)});
-
-                    var allOutFlightArray = dataList["ndc:PaxSegmentList"]["ndc:PaxSegment"]
-                      .filter(arr => allOutSegStr.includes(arr["ndc:PaxSegmentID"]))
-                      .map(arr => ({
-                          flightNumber : arr["ndc:MarketingCarrierInfo"]["ndc:CarrierDesigCode"]+arr["ndc:MarketingCarrierInfo"]["ndc:MarketingCarrierFlightNumberText"]+"--Outbound",
-                          departDate : arr["ndc:Dep"]["ndc:AircraftScheduledDateTime"].split(/[A-Z]/).reverse().pop().split('-').reverse().join("-"),
-                          departTime : arr["ndc:Dep"]["ndc:AircraftScheduledDateTime"].split(/[A-Z]/).pop().split('-').reverse().join("-")
-                        }));
-
-                    var allRetFlightArray = dataList["ndc:PaxSegmentList"]["ndc:PaxSegment"]
-                      .filter(arr => allRetSegStr.includes(arr["ndc:PaxSegmentID"]))
-                      .map(arr => ({
-                          flightNumber : arr["ndc:MarketingCarrierInfo"]["ndc:CarrierDesigCode"]+arr["ndc:MarketingCarrierInfo"]["ndc:MarketingCarrierFlightNumberText"]+"--Return",
-                          departDate : arr["ndc:Dep"]["ndc:AircraftScheduledDateTime"].split(/[A-Z]/).reverse().pop().split('-').reverse().join("-"),
-                          departTime : arr["ndc:Dep"]["ndc:AircraftScheduledDateTime"].split(/[A-Z]/).pop().split('-').reverse().join("-")
-                        }));
-                      
-                      Array.prototype.push.apply(allOutFlightArray,allRetFlightArray);
-                      setResponseData(allOutFlightArray);
-                      setResultTable(true);
-              }
-            }
-            else {
-              setNetError(true);
-            }
         })
       
       })
@@ -219,7 +388,7 @@ function App() {
       .finally(function(){
         setLoading(false);
   })
-}, [getValues,checked])
+}, [getValues,checked,google,family])
 
 
   useEffect(() => {
@@ -229,6 +398,9 @@ function App() {
     setResponseData([]);
     setResultTable(false);
     setNetError(false);
+    if(family && getValues('change') === "" && getValues('refund') === ""){
+      setCrError(true);
+    }
   };
 
   const handleChangeFrom = (dateChange) => {
@@ -247,15 +419,30 @@ function App() {
    setToDate(dateChange);
   };
 
+  const diablePoS = () => {getValues('sellerId')=== "GOOGLE" ? setGoogle(true) : setGoogle(false)}
+
+  const changeFlight = (e) => {
+    console.log(getValues('change'));
+  }
+  const refundFlight = (e) => {
+    console.log(getValues('refund'));
+  }
+  const changeFlightIn = (e) => {
+    console.log(getValues('changeIn'));
+  }
+  const refundFlightIn = (e) => {
+    console.log(getValues('refundIn'));
+  }
+
   return (
     <div className="App">
       <header className="App-header">
         <h1>
-          OMS Web Portal
+          <span>flight</span><span className="darkblue">Search</span>
         </h1>
       </header>
       <div className="App-body">
-      <div className="fares">
+      {/* <div className="fares">
         <table className="fareTable">
           <thead>
             <tr>
@@ -278,13 +465,13 @@ function App() {
           })}
           </tbody>
         </table>
-        </div>
+        </div> */}
          <div>  
           <form onSubmit={handleSubmit(onSubmitData)}>
               <div className="marginBottom">
                 <label>
+                  <DragSwitch onColor='#00aaad' checked={checked} onChange={(e) => {setChecked(e)}} />
                   <span className="tripText">{checked ? 'Round Trip' : 'One Way'}</span>
-                  <DragSwitch onColor='#ff7700' checked={checked} onChange={(e) => {setChecked(e)}} />
                 </label>
             </div>
             <div className="dates">
@@ -338,23 +525,37 @@ function App() {
                   placeholder="*Going To"
                   ref={register({ required: true })}
                 />
-              <div>
-                  <select placeholder="Cabin" name="cabin" ref={register}>
+                <input
+                  type="text"
+                  name="connection"
+                  placeholder="Connection"
+                  ref={register}
+                />
+                <div>
+                <select placeholder="Cabin" name="cabin" ref={register}>
                       <option value="3">Economy</option>
                       <option value="4">Premium Economy</option>
                       <option value="2">Business</option>
                       <option value="1">First</option>
                   </select>
-                  <select placeholder="Fare Family" name="fareFamily" ref={register}>
-                  {tableData.map((data, key) => {
-                    return (
-                      <option key={key} value={data.code}>{key+1+` - `+data.name}</option>
-                      )
-                    })}
-                </select>
-                    <select placeholder="Seller ID" name="sellerId" ref={register}>
+            <select placeholder="Currency" name="currency" ref={register}>
+              {currencyData.map((data, key) => {
+                return (
+                  <option key={key} value={data.value}>{data.name}</option>
+                  )
+                })}
+            </select>
+            <select placeholder="Point Of Sale" disabled={google} name="pointOfSale" ref={register}>
+            {countryData.map((data, key) => {
+                return (
+                  <option key={key} value={data.value}>{data.name}</option>
+                  )
+                })}
+            </select>
+            <select placeholder="Seller ID" onChange={(e) => {diablePoS(e)}} name="sellerId" ref={register}>
                     <option value="TRAVELFUSIONIBETA">TRAVELFUSIONIBETA</option>
                     <option value="TYOTA">TYOTA</option>
+                    <option value="GOOGLE">GOOGLE</option>
                     <option value="SELTA">SELTA</option>
                     <option value="PNHTA">PNHTA</option>
                     <option value="MEXTA">MEXTA</option>
@@ -363,33 +564,70 @@ function App() {
                     <option value="FRATA">FRATA</option>
                     <option value="BOMTA">BOMTA</option>
                 </select>
+              
+          </div>
+          <div>
+                <div className="marginBottom">
+                  <label>
+                    <DragSwitch onColor='#00aaad' checked={family} onChange={(e) => {setFamily(e)}} />
+                    <span className="tripText">{family ? 'Change/Refund' : 'Fare Family'}</span>
+                  </label>
+                </div>
+                  <select disabled={!family} placeholder="Change" onChange={(e) => {changeFlight(e)}} name="change" ref={register}>
+                      <option value="">CHANGE</option>
+                      <option value="Not permitted">Not permitted</option>
+                      <option value="Permitted (with fee)">Permitted (with fee)</option>
+                      <option value="Permitted">Permitted</option>
+                  </select>
+                  <select disabled={!family} placeholder="Refund" onChange={(e) => {refundFlight(e)}} name="refund" ref={register}>
+                      <option value="">REFUND</option>
+                      <option value="Not permitted">Not permitted</option>
+                      <option value="Permitted (with fee)">Permitted (with fee)</option>
+                      <option value="Permitted">Permitted</option>
+                  </select>
+                  {checked ? 
+                  <span className="inOutBound"> - Outbound</span> : ''}
+                  {checked ? 
+                  <div>
+                      <select disabled={!family} placeholder="Change" onChange={(e) => {changeFlightIn(e)}} name="changeIn" ref={register}>
+                        <option value="">CHANGE</option>
+                        <option value="Not permitted">Not permitted</option>
+                        <option value="Permitted (with fee)">Permitted (with fee)</option>
+                        <option value="Permitted">Permitted</option>
+                      </select>
+
+                       <select disabled={!family} placeholder="Refund" onChange={(e) => {refundFlightIn(e)}} name="refundIn" ref={register}>
+                        <option value="">REFUND</option>
+                        <option value="Not permitted">Not permitted</option>
+                        <option value="Permitted (with fee)">Permitted (with fee)</option>
+                        <option value="Permitted">Permitted</option>
+                    </select>
+                    <span className="inOutBound"> - Inbound</span>
+                  </div>
+                      : ''}
+                <select disabled={family} placeholder="Fare Family" name="fareFamily" ref={register}>
+                      {tableData.map((data, key) => {
+                        return (
+                          <option key={key} value={data.code}>{key+1+` - `+data.name}</option>
+                          )
+                        })}
+                    </select>
+                    <button type='submit' onClick={() => {fetchData(); setLoading(true)}}>Get Flights</button>
               </div>
-            <div>
-            <select placeholder="Currency" name="currency" ref={register}>
-              {currencyData.map((data, key) => {
-                return (
-                  <option key={key} value={data.value}>{data.name}</option>
-                  )
-                })}
-            </select>
-            <select placeholder="Point Of Sale" name="pointOfSale" ref={register}>
-            {countryData.map((data, key) => {
-                return (
-                  <option key={key} value={data.value}>{data.name}</option>
-                  )
-                })}
-            </select>
-              <div className="sweet-loading">
-                  <button type='submit' onClick={() => {fetchData(); setLoading(true)}}>Get Flights</button>
-                 <RingLoader color="#ff7700" loading={loading && !errors.origin && !errors.destination} css={override} size={70} />
-                 {loading && !errors.origin && !errors.destination ? <span className="loadingText">Getting the best results...</span> : ''}
+              <div>
+                <div className="sweet-loading">
+                 <RingLoader color="#00aaad" loading={loading && !crError  && !errors.origin && !errors.destination} css={override} size={70} />
+                 {loading && !crError && !errors.origin && !errors.destination ? <span className="loadingText">Getting the best results...</span> : ''}
               </div>
               <span className="errorText">
                 {errors.origin && " Error : Origin is required!"}<br></br>
                 {errors.destination && " Error : Destination is required!"}<br></br>
-                {netError ? 'Sorry!!! No flights available for this scenario': ''}
+                {netError ? 'Sorry!!! No flights available for this scenario': ''}<br></br>
+                {crError ? 'Please Input Change or Refund!': ''}
               </span>
-          </div>
+              </div>
+              
+            
           </form>
           {resultTable ? 
           <div>
